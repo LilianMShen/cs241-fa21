@@ -108,16 +108,19 @@ void six(const char *str) {
  * Creates an array of values containing the values {0.0, 0.1, ..., 0.9}.
  */
 void seven() {
-    // float *values;
+    float *values;
+    values = malloc(10 * sizeof(float));
 
-    // int i, n = 10;
+    int i;
+    int n = 10;
 
-    // for (i = 0; i < n; i++)
-    //     values[i] = (float)i / n;
+    for (i = 0; i < n; i++)
+        values[i] = (float) i / n;
 
-    // for (i = 0; i < n; i++)
-    //     printf("%f ", values[i]);
-    // printf("\n");
+    for (i = 0; i < n; i++)
+        printf("%f ", values[i]);
+    
+    printf("\n");
 }
 
 /**
@@ -127,8 +130,9 @@ void eight(int a) {
     int **values;
 
     int i, j;
-    values = malloc(10 * sizeof(int *));
+    values = (int**) malloc(sizeof(int *) * 10);
     for (i = 0; i < 10; i++) {
+        values[i] = malloc(sizeof(int) * 10);
         for (j = 0; j < 10; j++)
             values[i][j] = i * j * a;
     }
@@ -137,8 +141,8 @@ void eight(int a) {
         printf("%d ", values[i][i]);
     printf("\n");
 
-    free(values);
-    values = NULL;
+    // free(values);
+    // values = NULL;
 }
 
 /**
@@ -151,6 +155,13 @@ void eight(int a) {
  *     Input parameter, used to determine which string is printed.
  */
 void nine(const char *s) {
+    if (strcmp(s, "blue") == 0) {
+        printf("Orange and BLUE!\n");
+    } else if (strcmp(s, "orange") == 0) {
+        printf("ORANGE and blue!\n");
+    } else{
+        printf("orange and blue!\n");
+    }
     // switch (s) {
     // case "blue":
     //     printf("Orange and BLUE!\n");
@@ -173,7 +184,7 @@ void nine(const char *s) {
  *     The diameter of the circle.
  */
 void ten(const int d) {
-    // printf("The radius of the circle is: %f.\n", d / 2);
+    printf("The radius of the circle is: %f.\n", (float) d/2);
 }
 
 /**
@@ -201,7 +212,14 @@ void ten(const int d) {
  */
 void clear_bits(long int value, long int flag) {
     // TODO clear_bits
+    // char* v = &value;
+    // char* f = &flag;
+    // long int cleared_value = 10000000;
+    // char* cv = &cleared_value;
+
     long int cleared_value = 0;
+    cleared_value = ((value) & (value ^ flag));
+    
     printf("cleared_value: %ld\n", cleared_value);
 }
 
@@ -233,5 +251,10 @@ void clear_bits(long int value, long int flag) {
 void little_automaton(int (*transition)(int, char), const char *input_string) {
     int state = 0;
     // put something here
+    char* c = (char*) input_string;
+    while (*c != '\0') {
+        state = transition(state, *c);
+        c++;
+    }
     printf("final state: %d\n", state);
 }
