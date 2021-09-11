@@ -91,14 +91,29 @@ vector *vector_create(copy_constructor_type copy_constructor,
     // your code here
     // Casting to void to remove complier error. Remove this line when you are
     // ready.
-    (void)INITIAL_CAPACITY;
-    (void)get_new_capacity;
-    return NULL;
+    vector * v;
+    v = malloc(sizeof(vector));
+    v->copy_constructor = copy_constructor;
+    v->destructor = destructor;
+    v->default_constructor = default_constructor;
+    v->capacity = INITIAL_CAPACITY;
+    v->array = malloc((sizeof(void*)) * v->capacity);
+    v->size = 0;
+
+    // (void)INITIAL_CAPACITY;
+    // (void)get_new_capacity;
+    return v;
 }
 
 void vector_destroy(vector *this) {
     assert(this);
     // your code here
+
+    for (size_t i = 0; i < this->capacity; i++) {
+        this->destructor(this->array[i]);
+    }
+    free(this->array);
+    free(this);
 }
 
 void **vector_begin(vector *this) {
@@ -112,82 +127,116 @@ void **vector_end(vector *this) {
 size_t vector_size(vector *this) {
     assert(this);
     // your code here
-    return 0;
+    return this->size;
 }
 
 void vector_resize(vector *this, size_t n) {
     assert(this);
     // your code here
+    if (n < this->capacity) {
+        for (size_t i = n; i < this->capacity; i++) {
+            this->destructor(this->array[i]);
+        }
+    // } else if (n > this->size && n <= this->capacity) {
+    //     this->capacity = get_new_capacity(n);
+    } else if (n > this->capacity) {
+        this->capacity = get_new_capacity(n);
+        this->array = realloc(this->array, this->capacity);
+    }
+    this->size = n;
 }
 
 size_t vector_capacity(vector *this) {
     assert(this);
     // your code here
-    return 0;
+    return this->capacity;
 }
 
 bool vector_empty(vector *this) {
     assert(this);
     // your code here
-    return true;
+    return (this->size == 0);
 }
 
 void vector_reserve(vector *this, size_t n) {
     assert(this);
     // your code here
+    if (n > this->capacity) {
+        this->capacity = n;
+        this->array = realloc(this->array, this->capacity);
+    }
 }
 
 void **vector_at(vector *this, size_t position) {
     assert(this);
     // your code here
-    return NULL;
+    assert(position < this->size && position >= 0);
+    return this->array + position;
 }
 
 void vector_set(vector *this, size_t position, void *element) {
     assert(this);
     // your code here
+    assert(position < this->size && position >= 0);
+    // this->destructor(this->array + position);
+    this->array[position] = element;
 }
 
 void *vector_get(vector *this, size_t position) {
     assert(this);
     // your code here
-    return NULL;
+    return this->array[position];
 }
 
 void **vector_front(vector *this) {
     assert(this);
     // your code here
-    return NULL;
+    return this->array;
 }
 
 void **vector_back(vector *this) {
     // your code here
-    return NULL;
+    return this->array + this->size - 1;
 }
 
 void vector_push_back(vector *this, void *element) {
     assert(this);
     // your code here
+    vector_resize(this, this->size + 1);
+    this->array[this->size - 1] = realloc(this, sizeof(*element));
+    this->array[this->size - 1] = element;
 }
 
 void vector_pop_back(vector *this) {
     assert(this);
     // your code here
+    vector_resize(this, this->size - 1);
 }
 
 void vector_insert(vector *this, size_t position, void *element) {
     assert(this);
     // your code here
+    vector_resize(this, this->size + 1);
+    this->array[this->size - 1] = realloc(this, sizeof(*element));
+    for (size_t i = this->array + this->size - 1; i > position; i++) {
+        this->array[i] = this->array[i - 1];
+    }
+    this->array[position] = element;
 }
 
 void vector_erase(vector *this, size_t position) {
     assert(this);
     assert(position < vector_size(this));
     // your code here
+    for (size_t i = position; i < this->array + this->size; i++) {
+        this->array[i] = this->array[i - 1];
+    }
+    vector_resize(this, this->size - 1);
 }
 
 void vector_clear(vector *this) {
     // your code here
+    vector_resize(this, 0);
 }
 
 // The following is code generated:
