@@ -93,11 +93,29 @@ vector *vector_create(copy_constructor_type copy_constructor,
     // ready.
     vector * v;
     v = malloc(sizeof(vector));
-    v->copy_constructor = copy_constructor;
-    v->destructor = destructor;
-    v->default_constructor = default_constructor;
+    if (!copy_constructor) {
+        v->copy_constructor = shallow_copy_constructor;
+    } else {
+        v->copy_constructor = copy_constructor;
+    }
+
+    if (!destructor) {
+        v->destructor = shallow_destructor;
+    } else {
+        v->destructor = destructor;
+    }
+
+    if (!default_constructor) {
+        v->default_constructor = shallow_default_constructor;
+    } else {
+        v->default_constructor = default_constructor;
+    }
+
     v->capacity = INITIAL_CAPACITY;
     v->array = malloc((sizeof(void*)) * v->capacity);
+    // for (size_t i = 0; i < INITIAL_CAPACITY; i++) {
+    //     v->array[i] = v->default_constructor();
+    // }
     v->size = 0;
 
     // (void)INITIAL_CAPACITY;
@@ -109,7 +127,7 @@ void vector_destroy(vector *this) {
     assert(this);
     // your code here
 
-    for (size_t i = 0; i < this->capacity; i++) {
+    for (size_t i = 0; i < this->size; i++) {
         this->destructor(this->array[i]);
     }
     free(this->array);
@@ -133,16 +151,27 @@ size_t vector_size(vector *this) {
 void vector_resize(vector *this, size_t n) {
     assert(this);
     // your code here
-    if (n < this->capacity) {
-        for (size_t i = n; i < this->capacity; i++) {
-            this->destructor(this->array[i]);
+    if (n < this->size) {
+        for (size_t i = n; i < this->size; i++) {
+            if (this->array[i]) this->destructor(this->array[i]);
+            // this->array[i] = this->default_constructor();
         }
-    // } else if (n > this->size && n <= this->capacity) {
-    //     this->capacity = get_new_capacity(n);
-    } else if (n > this->capacity) {
-        this->capacity = get_new_capacity(n);
-        this->array = realloc(this->array, this->capacity);
-    }
+    } else if (n > this->size) {
+        vector_reserve(this, n);
+        // if (n > this->capacity) {
+        //     size_t newCap = get_new_capacity(n);
+        //     this->array = realloc(this->array, newCap);
+        //     for (size_t i = this->capacity; i < newCap; i++) {
+        //         this->array[i] = this->default_constructor();
+        //     }
+        //     this->capacity = newCap;
+        // }
+        for (size_t i = this->size; i < n; i++) {
+            this->array[i] = this->default_constructor();
+        }
+    } 
+    
+    
     this->size = n;
 }
 
@@ -162,8 +191,12 @@ void vector_reserve(vector *this, size_t n) {
     assert(this);
     // your code here
     if (n > this->capacity) {
-        this->capacity = n;
-        this->array = realloc(this->array, this->capacity);
+        this->capacity = get_new_capacity(n);
+        this->array = realloc(this->array, sizeof(void*) * this->capacity);
+        // for (size_t i = this->capacity; i < newCap; i++) {
+        //     this->array[i] = this->default_constructor();
+        // }
+        
     }
 }
 
@@ -179,7 +212,7 @@ void vector_set(vector *this, size_t position, void *element) {
     // your code here
     assert(position < this->size && position >= 0);
     // this->destructor(this->array + position);
-    this->array[position] = element;
+    this->array[position] = this->copy_constructor(element);
 }
 
 void *vector_get(vector *this, size_t position) {
@@ -203,8 +236,8 @@ void vector_push_back(vector *this, void *element) {
     assert(this);
     // your code here
     vector_resize(this, this->size + 1);
-    this->array[this->size - 1] = realloc(this, sizeof(*element));
-    this->array[this->size - 1] = element;
+    // this->array[this->size - 1] = realloc(this, sizeof(element));
+    this->array[this->size - 1] = this->copy_constructor(element);
 }
 
 void vector_pop_back(vector *this) {
@@ -217,19 +250,22 @@ void vector_insert(vector *this, size_t position, void *element) {
     assert(this);
     // your code here
     vector_resize(this, this->size + 1);
-    this->array[this->size - 1] = realloc(this, sizeof(*element));
-    for (size_t i = this->array + this->size - 1; i > position; i++) {
-        this->array[i] = this->array[i - 1];
+    // this->array[this->size - 1] = realloc(this, sizeof(*element));
+    for (size_t i = this->size - 1; i > position; i--) {
+        // this->destructor(this->array[i]);
+        this->array[i] = this->copy_constructor(this->array[i - 1]);
     }
-    this->array[position] = element;
+    this->destructor(this->array[position]);
+    this->array[position] = this->copy_constructor(element);
 }
 
 void vector_erase(vector *this, size_t position) {
     assert(this);
     assert(position < vector_size(this));
     // your code here
-    for (size_t i = position; i < this->array + this->size; i++) {
-        this->array[i] = this->array[i - 1];
+    for (size_t i = position; i < this->size - 1; i++) {
+        // this->destructor(this->array[i]);
+        this->array[i] = this->copy_constructor(this->array[i + 1]);
     }
     vector_resize(this, this->size - 1);
 }
