@@ -89,7 +89,7 @@ int main(int argc, char *argv[]) {
 
     printf("All tests passed!\n");
 
-    vector_destroy(v);
+    // vector_destroy(v);
     v = NULL;
 
 }
