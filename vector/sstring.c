@@ -87,12 +87,9 @@ int sstring_substitute(sstring *this, size_t offset, char *target,
         copy = sstring_slice(this, 0, i);
         strncpy(&copy[i], substitution, strlen(substitution));
         strcpy(&copy[i + strlen(substitution)], &this->string[i + strlen(target)]);
-        // string_destructor(this->string);
-        // this->string = malloc(strlen(copy) + 1);
         strcpy(this->string, copy);
         free(copy);
         return 0;
-        // copy = realloc(copy, strlen(this->string) + 1 + (strlen(*substitution) - strlen(*target)));
     }
     return -1;
 }
