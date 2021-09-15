@@ -28,22 +28,23 @@ int main(int argc, char *argv[]) {
     clock_gettime(0, &before);
 
     if (pid == 0) { // do child function
-        char * path = "/bin/";
-        strcat(path, argv[0]);
-        execv(path , &argv[1]);
-        // exit(EXIT_FAILURE); // For safety.
-        
+        char path[strlen(argv[1]) + 6];
+        strcpy(path, "/bin/");
+        strcat(path, argv[1]);
+        if (execv(path , argv + 1) == -1) {
+            print_exec_failed();
+        }
     }
 
     if (pid > 0) { // do parent function
         int status;
-        waitpid(-1, &status, 0);
-        if (WIFEXITED(status)) {
+        wait(&status);
+        if (!WIFEXITED(status)) {
             print_exec_failed();
         }
-
         clock_gettime(0, &after);
-        double time = ((after.tv_sec - before.tv_sec));
+
+        double time = (after.tv_sec - before.tv_sec);
         display_results(argv, time);
     }
     return 0;
