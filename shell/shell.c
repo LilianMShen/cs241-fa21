@@ -372,14 +372,6 @@ int shell(int argc, char *argv[]) {
         fclose(hptr);
     }
 
-    
-    
-    //chdir() does everything cd does
-    //getcwd
-    //change_directory()
-    // shell_usage()
-    // execvp
-
     vector_destroy(h);
     exit(0);
     return 0;
