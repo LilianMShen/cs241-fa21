@@ -280,10 +280,13 @@ int runUserInput(vector * h) {
         
         vector_push_back(h, line);
 
-        // // catch background process
-        // if (line[strlen(line) - 2] == ' ' && line[strlen(line) - 1] == '&') {
-        //     exitFlag = runUserInput(h);
-        // }
+        // catch background process
+        if (line[strlen(line) - 2] == ' ' && line[strlen(line) - 1] == '&') {
+            exitFlag = runUserInput(h);
+            // if (exitFlag == -1) {
+            //     return exitFlag;
+            // }
+        }
         
         runCmd(h, line);
         free(line);
