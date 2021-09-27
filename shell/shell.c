@@ -130,7 +130,7 @@ int isBuiltIn(vector * v, vector * h, vector * pids) {
 }
 
 // logic for handling fork exec wait functions
-int isNotBuiltIn(vector* v, vector* h, vector * pids, int isBackground, int redirectFlag, vector * splicedLineTwo) {
+int isNotBuiltIn(vector* v, vector* h, vector * pids, int isBackground, int redirectFlag, char * fileName) {
     if (vector_empty(v)) {
         return 0;
     }
@@ -152,7 +152,6 @@ int isNotBuiltIn(vector* v, vector* h, vector * pids, int isBackground, int redi
         print_command_executed(curpid);
 
         if (redirectFlag != 0) {
-            char * fileName = vector_get(splicedLineTwo, 0);
             // output
             if (redirectFlag == 2) filefd = open(fileName, O_CREAT|O_WRONLY, 0777);
             // append
@@ -193,7 +192,7 @@ int isNotBuiltIn(vector* v, vector* h, vector * pids, int isBackground, int redi
         vector_push_back(pids, &curpid);
     }
 
-    return 0;
+    return 1;
 }
 
 // logic for finding if user input contains an operator, returns index of operator
@@ -255,9 +254,6 @@ void runCmd(vector* h, vector * pids, char*line) {
     int andFlag = 0;
     int semiFlag = 0;
     int redirectFlag = 0;
-    // int outputFlag = 0;
-    // int appendFlag = 0;
-    // int inputFlag = 0;
     int suc1a = 0;
     int suc2a = 0;
 
@@ -265,6 +261,7 @@ void runCmd(vector* h, vector * pids, char*line) {
     vector * splicedLine = sstring_split(cmds, ' ');
     int operatorIndex = containsOperator(splicedLine);
     vector * splicedLineTwo = string_vector_create();
+    char * fileName;
     if (operatorIndex != -1) {
         newSplicedLine(splicedLineTwo, splicedLine, operatorIndex);
         char * operator = vector_get(splicedLineTwo, 0);
@@ -275,20 +272,19 @@ void runCmd(vector* h, vector * pids, char*line) {
         } else if (strcmp(operator, "&&") == 0) {
             andFlag = 1;
             vector_erase(splicedLineTwo, 0);
-            
         } else if (strcmp(operator, ">>") == 0) {
-            // appendFlag = 1;
             redirectFlag = 1;
+            fileName = vector_get(splicedLineTwo, 0);
             vector_erase(splicedLineTwo, 0);
             
         } else if (strcmp(operator, ">") == 0) {
-            // outputFlag = 1;
             redirectFlag = 2;
+            fileName = vector_get(splicedLineTwo, 0);
             vector_erase(splicedLineTwo, 0);
             
         } else if (strcmp(operator, "<") == 0) {
-            // inputFlag = 1;
             redirectFlag = 3;
+            fileName = vector_get(splicedLineTwo, 0);
             vector_erase(splicedLineTwo, 0);
             
         } else {
@@ -306,10 +302,8 @@ void runCmd(vector* h, vector * pids, char*line) {
 
     suc1a = isBuiltIn(splicedLine, h, pids);
     if (suc1a == 0) {
-        suc2a = isNotBuiltIn(splicedLine, h, pids, isBackground, redirectFlag, splicedLineTwo);
+        suc2a = isNotBuiltIn(splicedLine, h, pids, isBackground, redirectFlag, fileName);
     }
-
-
     int suc1 = 0;
     if (suc1a == 1 || suc2a == 1) {
         suc1 = 1;
@@ -322,17 +316,17 @@ void runCmd(vector* h, vector * pids, char*line) {
     if ((suc1 == 1) && (andFlag == 1)) {
         suc1b = isBuiltIn(splicedLineTwo, h, pids);
         if (suc1b == 0) {
-            suc2b = isNotBuiltIn(splicedLineTwo, h, pids, isBackground, redirectFlag, splicedLineTwo);
+            suc2b = isNotBuiltIn(splicedLineTwo, h, pids, isBackground, redirectFlag, fileName);
         }
     } else if ((suc1 == -1) && (orFlag == 1)) {
         suc1b = isBuiltIn(splicedLineTwo, h, pids);
         if (suc1b == 0) {
-            suc2b = isNotBuiltIn(splicedLineTwo, h, pids, isBackground, redirectFlag, splicedLineTwo);
+            suc2b = isNotBuiltIn(splicedLineTwo, h, pids, isBackground, redirectFlag, fileName);
         }
     } else if (semiFlag == 1) {
         suc1b = isBuiltIn(splicedLineTwo, h, pids);
         if (suc1b == 0) {
-            suc2b = isNotBuiltIn(splicedLineTwo, h, pids, isBackground, redirectFlag, splicedLineTwo);
+            suc2b = isNotBuiltIn(splicedLineTwo, h, pids, isBackground, redirectFlag, fileName);
         }
     }
     
