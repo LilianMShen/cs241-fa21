@@ -189,8 +189,8 @@ int isNotBuiltIn(vector* v, vector* h, vector * pids, int isBackground, int redi
         }
     } else if (childPid > 0 && isBackground == 1) {
         // printf("hit background process \n");
-        int pgid = setpgid(0, 0);
-        vector_push_back(pids, curpid);
+        // int pgid = setpgid(0, 0);
+        vector_push_back(pids, &curpid);
     }
 
     return 0;
@@ -226,9 +226,16 @@ void newSplicedLine(vector* splicedLineTwo, vector* splicedLine, int index) {
     }
 }
 
-// void overwriteFile(vector * pids) {
-//     FILE * file;
-// }
+void killZombiePids(vector * pids) {
+    // kill remaining pids
+    pid_t kidpid;
+    int status;
+    while (vector_size(pids) > 0) {
+        int * pid = vector_get(pids, vector_size(pids) - 1);
+        kidpid = waitpid(*pid, &status, WNOHANG);
+        vector_erase(pids, vector_size(pids) - 1);
+    }
+}
 
 // void killChild(vector * v, vector * pids, char * line) {
     
@@ -455,15 +462,7 @@ int shell(int argc, char *argv[]) {
         fclose(hptr);
     }
 
-
-    // kill remaining pids
-    pid_t kidpid;
-    int status;
-    while (vector_size(pids) > 0) {
-        int * pid = vector_get(pids, vector_size(pids) - 1);
-        kidpid = waitpid(*pid, &status, WNOHANG);
-        vector_erase(pids, vector_size(pids) - 1);
-    }
+    killZombiePids(pids);
 
     vector_destroy(h);
     vector_destroy(pids);
