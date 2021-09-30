@@ -103,9 +103,9 @@ int par_reduce(int *list, size_t list_len, reducer reduce_func, int base_case,
 
     for (size_t i = 0; i < num_threads; i++) {
         // free(threads[i]);
-        // if (threadInfo[i].args != NULL) {
-        //     free(threadInfo[i].args);
-        // }
+        if (threadInfo[i].args != NULL) {
+            free(threadInfo[i].args);
+        }
         // free(threadInfo[i].output);
         // free(retvals[i]);
     }
