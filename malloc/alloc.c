@@ -70,6 +70,10 @@ void *calloc(size_t num, size_t size) {
         }
 
         if (block) {
+            if (freeHead == block) {
+                freeHead = block->next;
+                freeHead->prev = NULL;
+            }
             
             if (block->prev) block->prev->next = block->next;
             if (block->next) block->next->prev = block->prev;
@@ -103,7 +107,6 @@ void *calloc(size_t num, size_t size) {
     block->request_size = s;
 
     if (dataHead == NULL) {
-        // printf("made head\n");
         dataHead = block;
         dataHead->prev = NULL;
         dataHead->next = NULL;
@@ -146,7 +149,6 @@ void *calloc(size_t num, size_t size) {
 void *malloc(size_t size) {
     // implement malloc!
     if (size == 0) return NULL;
-    printf("hit malloc ");
 
     if (freeHead != NULL) {
         
@@ -158,8 +160,13 @@ void *malloc(size_t size) {
         }
 
         if (block) {
-            if (block->prev) block->prev->next = block->next;
-            if (block->next) block->next->prev = block->prev;
+            if (freeHead == block) {
+                freeHead = block->next;
+                freeHead->prev = NULL;
+            } else {
+                if (block->prev) block->prev->next = block->next;
+                if (block->next) block->next->prev = block->prev;
+            }
 
             if (dataHead == NULL) {
                 dataHead = block;
@@ -180,15 +187,9 @@ void *malloc(size_t size) {
 
     meta_data * block = sbrk(size + sizeof(meta_data));
 
-    // if (errno == ENOMEM) {
-    //     printf("ERRNO HIT \n");
-    //     return NULL;
-    // }
-
     block->request_size = size;
 
     if (dataHead == NULL) {
-        // printf("made head\n");
         dataHead = block;
         dataHead->prev = NULL;
         dataHead->next = NULL;
@@ -222,7 +223,6 @@ void *malloc(size_t size) {
  */
 void free(void *ptr) {
     // implement free!
-    printf("hit free.\n");
     if (ptr == NULL) {
         return;
     }
@@ -233,10 +233,11 @@ void free(void *ptr) {
 
     if (dataHead == block) {
         dataHead = block->next;
+        dataHead->prev = NULL;
+    } else {
+        if (block->prev) block->prev->next = block->next;
+        if (block->next) block->next->prev = block->prev;
     }
-
-    if (block->prev) block->prev->next = block->next;
-    if (block->next) block->next->prev = block->prev;
 
     if (freeHead == NULL) {
         freeHead = block;
@@ -250,7 +251,6 @@ void free(void *ptr) {
         prevBlock->next = block;
         block->prev = prevBlock;
     }
-    
 }
 
 /**
@@ -330,5 +330,12 @@ void *realloc(void *ptr, size_t size) {
         }
     }
 
-    return malloc(size);
+    void * returnPtr = malloc(size);
+    if (returnPtr == NULL) {
+        return NULL;
+    }
+
+    memcpy(returnPtr, ptr, blockIterator->request_size);
+    free(ptr);
+    return returnPtr;
 }
