@@ -6,6 +6,31 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <errno.h>
+
+extern int errno;
+
+typedef struct _meta_data {
+    // Number of bytes of heap memory the user requested from malloc
+    size_t request_size;
+
+    // // Name of the file where the memory request came from, as a string
+    // // (you should store the pointer we give to mini_malloc directly;
+    // //  you should NOT try to allocate a new buffer for it)
+    // const char *filename;
+    // // The address of the instruction that requested this memory;
+    // // this will be used later to find the function name and line number
+    // void *instruction;
+
+    // Pointer to the next instance of meta_data in the list
+    struct _meta_data *next;
+
+    // Pointer to previous instance of meta_data in the list
+    struct _meta_data *prev;
+} meta_data;
+
+static meta_data * dataHead;
+static meta_data * freeHead;
 
 /**
  * Allocate space for array in memory
@@ -32,7 +57,69 @@
  */
 void *calloc(size_t num, size_t size) {
     // implement calloc!
-    return NULL;
+    size_t s = num * size;
+
+    if (s == 0) return NULL;
+
+    if (freeHead != NULL) {
+        meta_data * block = freeHead;
+
+        while (block != NULL) {
+            if (block->request_size >= s) break;
+            block = block->next;
+        }
+
+        if (block) {
+            
+            if (block->prev) block->prev->next = block->next;
+            if (block->next) block->next->prev = block->prev;
+
+            if (dataHead == NULL) {
+                dataHead = block;
+                dataHead->prev = NULL;
+                dataHead->next = NULL;
+            } else { // add to the linked list
+                meta_data * prevBlock = dataHead;
+                while (prevBlock -> next != NULL) {
+                    prevBlock = prevBlock->next;
+                }
+                prevBlock->next = block;
+                block->prev = prevBlock;
+            }
+
+            // initialize all bytes to 0
+            memset(block + sizeof(meta_data), 0, s);
+
+            return block + sizeof(meta_data);
+        }
+    }
+
+    meta_data * block = sbrk(s + sizeof(meta_data));
+
+    // if (errno == ENOMEM) {
+    //     return NULL;
+    // }
+
+    block->request_size = s;
+
+    if (dataHead == NULL) {
+        // printf("made head\n");
+        dataHead = block;
+        dataHead->prev = NULL;
+        dataHead->next = NULL;
+    } else { // add to the linked list
+        meta_data * prevBlock = dataHead;
+        while (prevBlock -> next != NULL) {
+            prevBlock = prevBlock->next;
+        }
+        prevBlock -> next = block;
+        block->prev = prevBlock;
+    }
+
+    // initialize all bytes to 0
+    memset(block + sizeof(meta_data), 0, s);
+
+    return block + sizeof(meta_data);
 }
 
 /**
@@ -58,7 +145,63 @@ void *calloc(size_t num, size_t size) {
  */
 void *malloc(size_t size) {
     // implement malloc!
-    return NULL;
+    if (size == 0) return NULL;
+    printf("hit malloc ");
+
+    if (freeHead != NULL) {
+        
+        meta_data * block = freeHead;
+
+        while (block != NULL) {
+            if (block->request_size >= size) break;
+            block = block->next;
+        }
+
+        if (block) {
+            if (block->prev) block->prev->next = block->next;
+            if (block->next) block->next->prev = block->prev;
+
+            if (dataHead == NULL) {
+                dataHead = block;
+                dataHead->prev = NULL;
+                dataHead->next = NULL;
+            } else { // add to the linked list
+                meta_data * prevBlock = dataHead;
+                while (prevBlock -> next != NULL) {
+                    prevBlock = prevBlock->next;
+                }
+                prevBlock->next = block;
+                block->prev = prevBlock;
+            }
+
+            return block + sizeof(meta_data);
+        }
+    }
+
+    meta_data * block = sbrk(size + sizeof(meta_data));
+
+    // if (errno == ENOMEM) {
+    //     printf("ERRNO HIT \n");
+    //     return NULL;
+    // }
+
+    block->request_size = size;
+
+    if (dataHead == NULL) {
+        // printf("made head\n");
+        dataHead = block;
+        dataHead->prev = NULL;
+        dataHead->next = NULL;
+    } else { // add to the linked list
+        meta_data * prevBlock = dataHead;
+        while (prevBlock -> next != NULL) {
+            prevBlock = prevBlock->next;
+        }
+        prevBlock -> next = block;
+        block->prev = prevBlock;
+    }
+
+    return (block + sizeof(meta_data));
 }
 
 /**
@@ -79,6 +222,35 @@ void *malloc(size_t size) {
  */
 void free(void *ptr) {
     // implement free!
+    printf("hit free.\n");
+    if (ptr == NULL) {
+        return;
+    }
+
+    meta_data * block = ptr - sizeof(meta_data);
+
+    if (block == NULL || dataHead == NULL) return;
+
+    if (dataHead == block) {
+        dataHead = block->next;
+    }
+
+    if (block->prev) block->prev->next = block->next;
+    if (block->next) block->next->prev = block->prev;
+
+    if (freeHead == NULL) {
+        freeHead = block;
+        block->prev = NULL;
+        block->next = NULL;
+    } else if (freeHead != NULL) {
+        meta_data * prevBlock = freeHead;
+        while (prevBlock -> next != NULL) {
+            prevBlock = prevBlock->next;
+        }
+        prevBlock->next = block;
+        block->prev = prevBlock;
+    }
+    
 }
 
 /**
@@ -128,5 +300,35 @@ void free(void *ptr) {
  */
 void *realloc(void *ptr, size_t size) {
     // implement realloc!
-    return NULL;
+    if (ptr == NULL) {
+        return malloc(size);
+    }
+
+    void * findptr = ptr - sizeof(meta_data);
+    meta_data * blockIterator = dataHead;
+    while (blockIterator != NULL) {
+        if (blockIterator == findptr) break; 
+        blockIterator = blockIterator->next;
+    }
+
+    if (size == 0) {
+        if (blockIterator) free(ptr);
+        return NULL;
+    }
+
+    if (blockIterator) {
+        if (size > blockIterator->request_size) {
+            void * returnPtr = malloc(size);
+            if (returnPtr == NULL) {
+                return NULL;
+            }
+
+            memcpy(returnPtr, ptr, blockIterator->request_size);
+            free(ptr);
+        } else {
+            return ptr;
+        }
+    }
+
+    return malloc(size);
 }
