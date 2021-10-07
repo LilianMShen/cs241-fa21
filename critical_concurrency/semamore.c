@@ -15,6 +15,8 @@
  */
 void semm_init(Semamore *s, int value, int max_val) {
     /* Your code here */
+    s->value = value;
+    s->max_val = max_val;
 }
 
 /**
@@ -23,6 +25,12 @@ void semm_init(Semamore *s, int value, int max_val) {
  */
 void semm_wait(Semamore *s) {
     /* Your code here */
+
+    if (s->value == 0) {
+        return;
+    }
+
+    s->value -= 1;
 }
 
 /**
@@ -32,6 +40,12 @@ void semm_wait(Semamore *s) {
  */
 void semm_post(Semamore *s) {
     /* Your code here */
+
+    if (s->value == s->max_val) {
+        return;
+    }
+    
+    s->value += 1;
 }
 
 /**
