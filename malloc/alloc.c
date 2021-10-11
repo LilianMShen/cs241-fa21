@@ -6,21 +6,10 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include <errno.h>
-
-extern int errno;
 
 typedef struct _meta_data {
     // Number of bytes of heap memory the user requested from malloc
     size_t request_size;
-
-    // // Name of the file where the memory request came from, as a string
-    // // (you should store the pointer we give to mini_malloc directly;
-    // //  you should NOT try to allocate a new buffer for it)
-    // const char *filename;
-    // // The address of the instruction that requested this memory;
-    // // this will be used later to find the function name and line number
-    // void *instruction;
 
     // Pointer to the next instance of meta_data in the list
     struct _meta_data *next;
@@ -31,6 +20,81 @@ typedef struct _meta_data {
 
 static meta_data * dataHead;
 static meta_data * freeHead;
+
+meta_data * findFreeBlock(size_t size) {
+    meta_data * block = freeHead;
+
+    while (block != NULL) {
+        if (size <= block->request_size) {
+            return block;
+        }
+        block = block->next;
+    }
+
+    return NULL;
+}
+
+meta_data * findDataBlock(void * ptr) {
+    void * findptr = ptr - 1;
+
+    meta_data * block = dataHead;
+    while (block != NULL) {
+        if (block == findptr) return block; 
+        block = block->next;
+    }
+
+    return NULL;
+}
+
+void removeFromFree(meta_data * block) {
+    if (freeHead == block) {
+        freeHead = block->next;
+        if (block->next) block->next->prev = NULL;
+    } else {
+        if (block->prev) block->prev->next = block->next;
+        if (block->next) block->next->prev = block->prev;
+    }
+}
+
+void removeFromData(meta_data * block) {
+    if (dataHead == block) {
+        dataHead = block->next;
+        if (block->next) block->next->prev = NULL;
+    } else {
+        if (block->prev) block->prev->next = block->next;
+        if (block->next) block->next->prev = block->prev;
+    }
+}
+
+void addToFree(meta_data * block) {
+    if (freeHead == NULL) {
+        freeHead = block;
+        block->prev = NULL;
+        block->next = NULL;
+    } else {
+        meta_data * prevBlock = freeHead;
+        while (prevBlock -> next != NULL) {
+            prevBlock = prevBlock->next;
+        }
+        prevBlock->next = block;
+        block->prev = prevBlock;
+    }
+}
+
+void addToData(meta_data * block) {
+    if (dataHead == NULL) {
+        dataHead = block;
+        block->prev = NULL;
+        block->next = NULL;
+    } else { // add to the linked list
+        meta_data * prevBlock = dataHead;
+        while (prevBlock -> next != NULL) {
+            prevBlock = prevBlock->next;
+        }
+        prevBlock->next = block;
+        block->prev = prevBlock;
+    }
+}
 
 /**
  * Allocate space for array in memory
@@ -61,68 +125,32 @@ void *calloc(size_t num, size_t size) {
 
     if (s == 0) return NULL;
 
+    meta_data * block;
+
     if (freeHead != NULL) {
-        meta_data * block = freeHead;
+        block = findFreeBlock(s);
 
-        while (block != NULL) {
-            if (block->request_size >= s) break;
-            block = block->next;
-        }
-
-        if (block) {
-            if (freeHead == block) {
-                freeHead = block->next;
-                freeHead->prev = NULL;
-            }
-            
-            if (block->prev) block->prev->next = block->next;
-            if (block->next) block->next->prev = block->prev;
-
-            if (dataHead == NULL) {
-                dataHead = block;
-                dataHead->prev = NULL;
-                dataHead->next = NULL;
-            } else { // add to the linked list
-                meta_data * prevBlock = dataHead;
-                while (prevBlock -> next != NULL) {
-                    prevBlock = prevBlock->next;
-                }
-                prevBlock->next = block;
-                block->prev = prevBlock;
-            }
+        if (block != NULL) {
+            removeFromFree(block);
+            addToData(block);
 
             // initialize all bytes to 0
-            memset(block + sizeof(meta_data), 0, s);
+            memset(block + 1, 0, s);
 
-            return block + sizeof(meta_data);
+            return block + 1;
         }
     }
 
-    meta_data * block = sbrk(s + sizeof(meta_data));
-
-    // if (errno == ENOMEM) {
-    //     return NULL;
-    // }
+    block = sbrk(s + sizeof(meta_data));
 
     block->request_size = s;
 
-    if (dataHead == NULL) {
-        dataHead = block;
-        dataHead->prev = NULL;
-        dataHead->next = NULL;
-    } else { // add to the linked list
-        meta_data * prevBlock = dataHead;
-        while (prevBlock -> next != NULL) {
-            prevBlock = prevBlock->next;
-        }
-        prevBlock -> next = block;
-        block->prev = prevBlock;
-    }
+    addToData(block);
 
     // initialize all bytes to 0
-    memset(block + sizeof(meta_data), 0, s);
+    memset(block + 1, 0, s);
 
-    return block + sizeof(meta_data);
+    return block + 1;
 }
 
 /**
@@ -150,59 +178,29 @@ void *malloc(size_t size) {
     // implement malloc!
     if (size == 0) return NULL;
 
+    meta_data * block;
+
     if (freeHead != NULL) {
-        
-        meta_data * block = freeHead;
+        block = findFreeBlock(size);
 
-        while (block != NULL) {
-            if (block->request_size >= size) break;
-            block = block->next;
-        }
+        if (block != NULL) {
+            removeFromFree(block);
+            addToData(block);
 
-        if (block) {
-            if (freeHead == block) {
-                freeHead = block->next;
-                freeHead->prev = NULL;
-            } else {
-                if (block->prev) block->prev->next = block->next;
-                if (block->next) block->next->prev = block->prev;
-            }
-
-            if (dataHead == NULL) {
-                dataHead = block;
-                dataHead->prev = NULL;
-                dataHead->next = NULL;
-            } else { // add to the linked list
-                meta_data * prevBlock = dataHead;
-                while (prevBlock -> next != NULL) {
-                    prevBlock = prevBlock->next;
-                }
-                prevBlock->next = block;
-                block->prev = prevBlock;
-            }
-
-            return block + sizeof(meta_data);
+            return block + 1;
         }
     }
-
-    meta_data * block = sbrk(size + sizeof(meta_data));
+    
+    // block = sbrk(0);
+    block = sbrk(0);
+    if (sbrk(sizeof(meta_data) + size) == (void*) - 1) return NULL;
+    // block = sbrk(size + sizeof(meta_data));
 
     block->request_size = size;
 
-    if (dataHead == NULL) {
-        dataHead = block;
-        dataHead->prev = NULL;
-        dataHead->next = NULL;
-    } else { // add to the linked list
-        meta_data * prevBlock = dataHead;
-        while (prevBlock -> next != NULL) {
-            prevBlock = prevBlock->next;
-        }
-        prevBlock -> next = block;
-        block->prev = prevBlock;
-    }
+    addToData(block);
 
-    return (block + sizeof(meta_data));
+    return block + 1;
 }
 
 /**
@@ -231,26 +229,9 @@ void free(void *ptr) {
 
     if (block == NULL || dataHead == NULL) return;
 
-    if (dataHead == block) {
-        dataHead = block->next;
-        dataHead->prev = NULL;
-    } else {
-        if (block->prev) block->prev->next = block->next;
-        if (block->next) block->next->prev = block->prev;
-    }
+    removeFromData(block);
 
-    if (freeHead == NULL) {
-        freeHead = block;
-        block->prev = NULL;
-        block->next = NULL;
-    } else if (freeHead != NULL) {
-        meta_data * prevBlock = freeHead;
-        while (prevBlock -> next != NULL) {
-            prevBlock = prevBlock->next;
-        }
-        prevBlock->next = block;
-        block->prev = prevBlock;
-    }
+    addToFree(block);
 }
 
 /**
@@ -304,19 +285,14 @@ void *realloc(void *ptr, size_t size) {
         return malloc(size);
     }
 
-    void * findptr = ptr - sizeof(meta_data);
-    meta_data * blockIterator = dataHead;
-    while (blockIterator != NULL) {
-        if (blockIterator == findptr) break; 
-        blockIterator = blockIterator->next;
-    }
+    meta_data * blockIterator = findDataBlock(ptr);
 
     if (size == 0) {
-        if (blockIterator) free(ptr);
+        if (blockIterator != NULL) free(ptr);
         return NULL;
     }
 
-    if (blockIterator) {
+    if (blockIterator != NULL) {
         if (size > blockIterator->request_size) {
             void * returnPtr = malloc(size);
             if (returnPtr == NULL) {

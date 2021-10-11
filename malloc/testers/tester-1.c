@@ -9,7 +9,6 @@
 int main(int argc, char *argv[]) {
     int i;
     for (i = 0; i < NUM_CYCLES; i++) {
-        if ((i + 1) % 10 == 0) printf("%d \n", i);
         int *ptr = malloc(sizeof(int));
 
         if (ptr == NULL) {
