@@ -20,6 +20,8 @@ typedef struct _meta_data {
 
 static meta_data * dataHead;
 static meta_data * freeHead;
+static meta_data * dataTail;
+static meta_data * freeTail;
 
 meta_data * findFreeBlock(size_t size) {
     meta_data * block = freeHead;
@@ -47,9 +49,15 @@ meta_data * findDataBlock(void * ptr) {
 }
 
 void removeFromFree(meta_data * block) {
-    if (freeHead == block) {
+    if (freeHead == block && freeTail == block) {
+        freeHead = NULL;
+        freeTail = NULL;
+    } else if (freeHead == block) {
         freeHead = block->next;
         if (block->next) block->next->prev = NULL;
+    } else if (freeTail == block) {
+        freeTail = block->prev;
+        if (block->prev) block->prev->next = NULL;
     } else {
         if (block->prev) block->prev->next = block->next;
         if (block->next) block->next->prev = block->prev;
@@ -57,9 +65,15 @@ void removeFromFree(meta_data * block) {
 }
 
 void removeFromData(meta_data * block) {
-    if (dataHead == block) {
+    if (dataHead == block && dataTail == block) {
+        dataHead = NULL;
+        dataTail = NULL;
+    } else if (dataHead == block) {
         dataHead = block->next;
         if (block->next) block->next->prev = NULL;
+    } else if (dataTail == block) {
+        dataTail = block->prev;
+        if (block->prev) block->prev->next = NULL;
     } else {
         if (block->prev) block->prev->next = block->next;
         if (block->next) block->next->prev = block->prev;
@@ -69,30 +83,38 @@ void removeFromData(meta_data * block) {
 void addToFree(meta_data * block) {
     if (freeHead == NULL) {
         freeHead = block;
+        freeTail = block;
         block->prev = NULL;
         block->next = NULL;
     } else {
-        meta_data * prevBlock = freeHead;
-        while (prevBlock -> next != NULL) {
-            prevBlock = prevBlock->next;
-        }
-        prevBlock->next = block;
-        block->prev = prevBlock;
+        freeTail->next = block;
+        block->prev = freeTail;
+        freeTail = block;
+        // meta_data * prevBlock = freeHead;
+        // while (prevBlock -> next != NULL) {
+        //     prevBlock = prevBlock->next;
+        // }
+        // prevBlock->next = block;
+        // block->prev = prevBlock;
     }
 }
 
 void addToData(meta_data * block) {
     if (dataHead == NULL) {
         dataHead = block;
+        dataTail = block;
         block->prev = NULL;
         block->next = NULL;
     } else { // add to the linked list
-        meta_data * prevBlock = dataHead;
-        while (prevBlock -> next != NULL) {
-            prevBlock = prevBlock->next;
-        }
-        prevBlock->next = block;
-        block->prev = prevBlock;
+        dataTail->next = block;
+        block->prev = dataTail;
+        dataTail = block;
+        // meta_data * prevBlock = dataHead;
+        // while (prevBlock -> next != NULL) {
+        //     prevBlock = prevBlock->next;
+        // }
+        // prevBlock->next = block;
+        // block->prev = prevBlock;
     }
 }
 
