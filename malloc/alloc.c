@@ -37,7 +37,7 @@ meta_data * findFreeBlock(size_t size) {
 }
 
 meta_data * findDataBlock(void * ptr) {
-    void * findptr = ptr - 1;
+    void * findptr = ptr - sizeof(meta_data);
 
     meta_data * block = dataHead;
     while (block != NULL) {
@@ -321,7 +321,7 @@ void *realloc(void *ptr, size_t size) {
                 return NULL;
             }
 
-            memcpy(returnPtr, ptr, blockIterator->request_size);
+            memmove(returnPtr, ptr, blockIterator->request_size);
             free(ptr);
         } else {
             return ptr;
@@ -333,7 +333,7 @@ void *realloc(void *ptr, size_t size) {
         return NULL;
     }
 
-    memcpy(returnPtr, ptr, blockIterator->request_size);
+    memmove(returnPtr, ptr, blockIterator->request_size);
     free(ptr);
     return returnPtr;
 }
