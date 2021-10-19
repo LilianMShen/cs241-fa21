@@ -14,6 +14,7 @@
 static int success;
 static int fail;
 static queue * users;
+static pthread_mutex_t mutex;
 
 struct user {
     char * username;
@@ -48,10 +49,7 @@ void user_destroy(struct user * u) {
 }
 
 void * routine(int * threadi) {
-    // printf("hit\n");
     int i = *threadi;
-    // printf("%d", i);
-    // printf("test");
     free(threadi);
     struct crypt_data data;
     data.initialized = 0;
@@ -62,6 +60,7 @@ void * routine(int * threadi) {
         v1_print_thread_start(i, u->username);
         char * password  = strdup(u->password);
         char * salt = strndup(u->hash, 2);
+
         // set the password
         int prefixLength = getPrefixLength(password);
         for (int i = prefixLength; i < (int) strlen(password); i++) {
@@ -72,12 +71,6 @@ void * routine(int * threadi) {
         int result = 1;
         while(strcmp(crypt_r(password, salt, &data), u->hash) != 0 && incrementString(password + prefixLength) != 0) {
             n++;
-            // if (incrementString(password) == 0) {
-            //     fail++;
-            //     printf("hit fail");
-            //     break;
-            // }
-            // printf("%s", password);
         }
         n++;
         
@@ -88,7 +81,7 @@ void * routine(int * threadi) {
             fail++;
         }
 
-        double end = end = getTime();
+        double end = getTime();
         v1_print_thread_result(i, u->username, password, n, (end - start), result);
 
         free(password);
@@ -108,16 +101,18 @@ int start(size_t thread_count) {
     char * str = NULL;
     ssize_t nread;
     size_t len = 0;
+    int count = 0;
     while ((nread = getline(&str, &len, stdin)) != -1) {
         if (feof(stdin)) {
-            // printf("\nhit feof\n");
             break;
         }
-        str[strlen(str) - 1] = '\0';
-        user_init(str, users);
+        if (strlen(str) > 0) {
+            count++;
+            str[strlen(str) - 1] = '\0';
+            user_init(str, users);
+        }
     }
     free(str);
-    // printf("exited the input space\n");
 
     // set threadpool
     size_t tc = thread_count;
@@ -132,22 +127,22 @@ int start(size_t thread_count) {
         user_init(dummy, users);
     }
     free(dummy);
-    // printf("set dummy threads\n");
 
-    // pthread_mutex_t mutex;
-    // pthread_mutex_init(&mutex, NULL);
+    pthread_mutex_init(&mutex, NULL);
 
-    printf("about to create threads\n");
     pthread_t * threads = malloc(sizeof(threads) * tc);
     for (size_t i = 1; i <= tc; i++) {
         int * threadId = malloc(sizeof(int));
         *threadId = i;
         int createErr = pthread_create(&threads[i], NULL, (void*) routine, threadId);
+        
         if (createErr) {
             printf("create error hit at thread %d\n", (int) i);
         }
     }
     // printf("created threads\n");
+    // pthread_mutex_lock(&mutex);
+    // pthread_mutex_unlock(&mutex);
 
     void* retval;
     for (size_t j= 0; j < tc; j++) {
@@ -159,7 +154,8 @@ int start(size_t thread_count) {
     // printf("joined threads\n");
 
     free(threads);
-    // pthread_mutex_destroy(&mutex);
+    free(retval);
+    pthread_mutex_destroy(&mutex);
     queue_destroy(users);
     v1_print_summary(success,fail);
     return 0; // DO NOT change the return code since AG uses it to check if your
