@@ -146,9 +146,9 @@ int start(size_t thread_count) {
     // pthread_mutex_lock(&mutex);
     // pthread_mutex_unlock(&mutex);
 
-    void* retval;
+    // void* retval;
     for (size_t j= 0; j < tc; j++) {
-        int joinErr = pthread_join(threads[j], &retval);
+        int joinErr = pthread_join(threads[j], NULL);
         if (joinErr) {
             printf("join error hit at thread %d\n", (int) j);
         }
@@ -156,7 +156,7 @@ int start(size_t thread_count) {
     // printf("joined threads\n");
 
     free(threads);
-    free(retval);
+    // free(retval);
     pthread_mutex_destroy(&mutex);
     queue_destroy(users);
     v1_print_summary(success,fail);
