@@ -14,7 +14,6 @@
 static int success;
 static int fail;
 static queue * users;
-static pthread_mutex_t mutex;
 
 struct user {
     char * username;
@@ -130,7 +129,6 @@ int start(size_t thread_count) {
     }
     free(dummy);
 
-    pthread_mutex_init(&mutex, NULL);
 
     pthread_t * threads = malloc(sizeof(threads) * tc);
     for (size_t i = 0; i < tc; i++) {
@@ -142,22 +140,15 @@ int start(size_t thread_count) {
             printf("create error hit at thread %d\n", (int) i);
         }
     }
-    // printf("created threads\n");
-    // pthread_mutex_lock(&mutex);
-    // pthread_mutex_unlock(&mutex);
 
-    // void* retval;
     for (size_t j= 0; j < tc; j++) {
         int joinErr = pthread_join(threads[j], NULL);
         if (joinErr) {
             printf("join error hit at thread %d\n", (int) j);
         }
     }
-    // printf("joined threads\n");
 
     free(threads);
-    // free(retval);
-    pthread_mutex_destroy(&mutex);
     queue_destroy(users);
     v1_print_summary(success,fail);
     return 0; // DO NOT change the return code since AG uses it to check if your
