@@ -24,6 +24,7 @@ struct user {
 
 // create user struct and push it to queue
 void user_init(char * str, queue * users) {
+    if (str == NULL  || users == NULL) return;
     struct user * one = malloc(sizeof(struct user));
     char * token = strtok(str, " ");
 
@@ -42,14 +43,15 @@ void user_init(char * str, queue * users) {
 }
 
 void user_destroy(struct user * u) {
-    free(u->username);
-    free(u->hash);
-    free(u->password);
-    free(u);
+    if (u == NULL) return;
+    if (u->username) free(u->username);
+    if (u->hash) free(u->hash);
+    if (u->password) free(u->password);
+    if (u) free(u);
 }
 
 void * routine(int * threadi) {
-    int i = *threadi;
+    int threadID = *threadi;
     free(threadi);
     struct crypt_data data;
     data.initialized = 0;
@@ -57,7 +59,7 @@ void * routine(int * threadi) {
     struct user * u = queue_pull(users);
     while(strcmp(u->username, "dummy") != 0){
         double start = getTime();
-        v1_print_thread_start(i, u->username);
+        v1_print_thread_start(threadID, u->username);
         char * password  = strdup(u->password);
         char * salt = strndup(u->hash, 2);
 
@@ -82,7 +84,7 @@ void * routine(int * threadi) {
         }
 
         double end = getTime();
-        v1_print_thread_result(i, u->username, password, n, (end - start), result);
+        v1_print_thread_result(threadID, u->username, password, n, (end - start), result);
 
         free(password);
         free(salt);
@@ -106,7 +108,7 @@ int start(size_t thread_count) {
         if (feof(stdin)) {
             break;
         }
-        if (strlen(str) > 0) {
+        if (str && strlen(str) > 0) {
             count++;
             str[strlen(str) - 1] = '\0';
             user_init(str, users);
@@ -131,9 +133,9 @@ int start(size_t thread_count) {
     pthread_mutex_init(&mutex, NULL);
 
     pthread_t * threads = malloc(sizeof(threads) * tc);
-    for (size_t i = 1; i <= tc; i++) {
+    for (size_t i = 0; i < tc; i++) {
         int * threadId = malloc(sizeof(int));
-        *threadId = i;
+        *threadId = i+1;
         int createErr = pthread_create(&threads[i], NULL, (void*) routine, threadId);
         
         if (createErr) {
