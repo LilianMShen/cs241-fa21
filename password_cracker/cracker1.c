@@ -91,7 +91,7 @@ void * routine(int * threadi) {
         user_destroy(u);
         u = queue_pull(users);
     }
-    user_destroy(u);
+    if (u) user_destroy(u);
     return NULL;
 }
 
