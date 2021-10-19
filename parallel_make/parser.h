@@ -4,7 +4,7 @@
  */
 #pragma once
 
-#include "graph.h"
+#include "includes/graph.h"
 #include "rule.h"
 
 /**
