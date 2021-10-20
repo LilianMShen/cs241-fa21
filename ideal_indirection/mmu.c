@@ -1,3 +1,4 @@
+// partners: lmshen2 jlwang5 dbargon2 justink6
 /**
  * ideal_indirection
  * CS 241 - Fall 2021
@@ -21,6 +22,56 @@ void mmu_read_from_virtual_address(mmu *this, addr32 virtual_address,
     assert(pid < MAX_PROCESS_ID);
     assert(num_bytes + (virtual_address % PAGE_SIZE) <= PAGE_SIZE);
     // TODO: Implement me!
+
+    if (this->curr_pid != pid) {
+        tlb_flush(&(this->tlb));
+        this->curr_pid = pid;
+    }
+
+    if (address_in_segmentations(this->segmentations[this->curr_pid], virtual_address) == false) {
+        mmu_raise_segmentation_fault(this);
+        return;
+    }
+
+    page_table_entry * pte = tlb_get_pte(&this->tlb, virtual_address & 0xFFFFF000);
+    if (pte == NULL) {
+        mmu_tlb_miss(this);
+
+        page_directory * pd = this->page_directories[this->curr_pid];
+        page_directory_entry * pde = &pd->entries[virtual_address >> 20];
+        
+        if (pde == NULL || !pde->present) {
+            // pde->base_addr << 10 >> 10;
+            mmu_raise_page_fault(this);
+            pde->base_addr = ask_kernel_for_frame(pte) >> 12;
+            pde->present = 1;
+            pde->read_write = 1;
+            pde->user_supervisor = 1;
+        }
+
+        page_table * pageTable = get_system_pointer_from_pde(pde);
+        pte = &pageTable->entries[(virtual_address & 0x003FF000) >> 12];
+        tlb_add_pte(&this->tlb, virtual_address, pte);
+    }
+
+    if (pte->present == 0) {
+        mmu_raise_page_fault(this);
+        pte->base_addr = ask_kernel_for_frame(pte) >> 12;
+        pte->present = 1;
+        pte->read_write = 1;
+        pte->user_supervisor = 1;
+        read_page_from_disk(pte);
+    }
+
+    vm_segmentation * seg = find_segment(this->segmentations[this->curr_pid], virtual_address);
+    if (!(seg->permissions & READ) || pte->read_write == 0) {
+        mmu_raise_segmentation_fault(this);
+        return;
+    }
+
+    void* physPointer = (void*)(get_system_pointer_from_pte(pte) + (virtual_address & 0x00000FFF));
+    memcpy(buffer, physPointer, num_bytes);
+    pte->accessed = 1;
 }
 
 void mmu_write_to_virtual_address(mmu *this, addr32 virtual_address, size_t pid,
@@ -29,6 +80,57 @@ void mmu_write_to_virtual_address(mmu *this, addr32 virtual_address, size_t pid,
     assert(pid < MAX_PROCESS_ID);
     assert(num_bytes + (virtual_address % PAGE_SIZE) <= PAGE_SIZE);
     // TODO: Implement me!
+
+    if (this->curr_pid != pid) {
+        tlb_flush(&(this->tlb));
+        this->curr_pid = pid;
+    }
+
+    if (address_in_segmentations(this->segmentations[this->curr_pid], virtual_address) == false) {
+        mmu_raise_segmentation_fault(this);
+        return;
+    }
+
+    page_table_entry * pte = tlb_get_pte(&this->tlb, virtual_address & 0xFFFFF000);
+    if (pte == NULL) {
+        mmu_tlb_miss(this);
+
+        page_directory * pd = this->page_directories[this->curr_pid];
+        page_directory_entry * pde = &pd->entries[virtual_address >> 20];
+        
+        if (pde == NULL || !pde->present) {
+            // pde->base_addr << 10 >> 10;
+            mmu_raise_page_fault(this);
+            pde->base_addr = ask_kernel_for_frame(pte) >> 12;
+            pde->present = 1;
+            pde->read_write = 1;
+            pde->user_supervisor = 1;
+        }
+
+        page_table * pageTable = get_system_pointer_from_pde(pde);
+        pte = &pageTable->entries[(virtual_address & 0x003FF000) >> 12];
+        tlb_add_pte(&this->tlb, virtual_address, pte);
+    }
+
+    if (pte->present == 0) {
+        mmu_raise_page_fault(this);
+        pte->base_addr = ask_kernel_for_frame(pte) >> 12;
+        pte->present = 1;
+        pte->read_write = 1;
+        pte->user_supervisor = 1;
+        read_page_from_disk(pte);
+    }
+
+    vm_segmentation * seg = find_segment(this->segmentations[this->curr_pid], virtual_address);
+    if (!(seg->permissions & WRITE) || pte->read_write == 0) {
+        mmu_raise_segmentation_fault(this);
+        return;
+    }
+
+    void* physPointer = (void*)(get_system_pointer_from_pte(pte) + (virtual_address & 0x00000FFF));
+    memcpy(physPointer, buffer, num_bytes);
+    pte->accessed = 1;
+    pte->dirty = 1;
 }
 
 void mmu_tlb_miss(mmu *this) {

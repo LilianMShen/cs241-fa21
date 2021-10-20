@@ -12,8 +12,6 @@
 #include <crypt.h>
 #include <pthread.h>
 
-static int success;
-static int fail;
 static queue * users;
 static size_t tc;
 static int passwordFound;
@@ -58,17 +56,25 @@ void user_destroy(struct user * u) {
 }
 
 void * routine(int * threadi) {
+    printf("hit -1\n");
     lastCPUTime = 0;
     int threadID = *threadi;
     free(threadi);
     struct crypt_data data;
     data.initialized = 0;
-    u = queue_pull(users);
-    
+
+    pthread_barrier_wait(&barrier);
+    if (threadID == 1) u = queue_pull(users);
+    pthread_barrier_wait(&barrier);
+
     while(strcmp(u->username, "dummy") != 0){
+        printf("hit 0\n");
         passwordFound = 1;
         totalHash = 0;
-        v2_print_start_user(u->username);
+        if (threadID == 1) v2_print_start_user(u->username);
+        pthread_barrier_wait(&barrier);
+
+        printf("hit 1\n");
 
         double start = getTime();
         char * password  = strdup(u->password);
@@ -79,7 +85,6 @@ void * routine(int * threadi) {
         for (int i = prefixLength; i < (int) strlen(password); i++) {
             password[i] = 'a';
         }
-
         int unknownCharacterLength = strlen(password) - prefixLength;
 
         long startIndex;
@@ -89,7 +94,7 @@ void * routine(int * threadi) {
         setStringPosition(password, startIndex);
 
         v2_print_thread_start(threadID, u->username, startIndex, password);
-        
+
         int n = 0;
         int result = 2;
         for (int i = 0; i < count; i++) {
@@ -116,16 +121,21 @@ void * routine(int * threadi) {
         double end = getTime();
         
         v2_print_thread_result(threadID, n, result);
+
+        pthread_barrier_wait(&barrier);
         
         double cpuTime = getCPUTime();
         if (threadID == 1) v2_print_summary(u->username, finPassword, totalHash, end - start, cpuTime - lastCPUTime, passwordFound);
         lastCPUTime = cpuTime;
 
-        free(password);
-        free(salt);
+        // printf("here 1 %d\n", threadID);
+        if (password) free(password);
+        if (salt) free(salt);
         if (finPassword) free(finPassword);
-        user_destroy(u);
-        u = queue_pull(users);
+        if (threadID == 1) user_destroy(u);
+        pthread_barrier_wait(&barrier);
+        if (threadID == 1) u = queue_pull(users);
+        pthread_barrier_wait(&barrier);
     }
     if (u) user_destroy(u);
     return NULL;
@@ -192,7 +202,6 @@ int start(size_t thread_count) {
 
     free(threads);
     queue_destroy(users);
-    v1_print_summary(success,fail);
     return 0; // DO NOT change the return code since AG uses it to check if your
               // program exited normally
 }
