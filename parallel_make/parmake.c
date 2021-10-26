@@ -10,6 +10,7 @@
 #include "includes/queue.h"
 #include <sys/stat.h>
 #include <unistd.h>
+#include <stdio.h>
 #include <time.h>
 
 static queue * rules;
@@ -130,11 +131,14 @@ int needToRunGoal(void * target) {
 
 int parmake(char *makefile, size_t num_threads, char **targets) {
     // good luck!
+    // printf("please....");
     dependency_graph = parser_parse_makefile(makefile, targets);
     vector * targs = graph_vertices(dependency_graph);
 
     void * target;
     vector * dependencies;
+
+    goals = string_vector_create();
 
     size_t index = 0;
     while (index < vector_size(targs)) {
@@ -143,6 +147,7 @@ int parmake(char *makefile, size_t num_threads, char **targets) {
             dependencies = graph_neighbors(dependency_graph, target);
             for (size_t i = 0; i < vector_size(dependencies); i++) {
                 vector_push_back(goals, vector_get(dependencies, i));
+                // printf("%s\n", (char*) vector_get(dependencies, i));
             }
             vector_destroy(dependencies);
             break;
