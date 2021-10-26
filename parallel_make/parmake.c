@@ -48,9 +48,7 @@ int checkForCycle(void * target) {
             break;
         }
     }
-
     vector_destroy(neighbors);
-
     return has_cycle;
 }
 
@@ -101,6 +99,7 @@ int isFailed(void * target) {
         }
     }
     
+    vector_destroy(dependencies);
     return 0;
 }
 
