@@ -16,13 +16,14 @@
 static queue * rules;
 static vector * goals;
 static vector * visited;
-// static vector * fails;
+static vector * fails;
 static graph * dependency_graph;
 
 bool contains_cycle(void* cur_node, void* to_match) {
-    if (cur_node == to_match) {
-        return true;
-    }
+    if (cur_node == NULL && to_match == NULL) return true;
+    if (cur_node == NULL || to_match == NULL) return false;
+    if (cur_node == to_match) return true;
+
     // For each neighbor check if there is a path to to_match
     vector *neighbors = graph_neighbors(dependency_graph, cur_node);
     size_t i;
@@ -87,18 +88,39 @@ int executeDependencies(void * target) {
     return 1;
 }
 
-void runGoal(void * goal) {
-    // fails = string_vector_create();
-
-    queue_push(rules, "dummy");
-    void * t = queue_pull(rules);
-    while (strcmp(t, "dummy") != 0) {
-        rule_t * rule = (rule_t *) graph_get_vertex_value(dependency_graph, t);
-        for (size_t i = 0; i < vector_size(rule->commands); i++) {
-            if (system(vector_get(rule->commands, i)) == -1) {
-                return;
+int isFailed(void * target) {
+    vector * dependencies = graph_neighbors(dependency_graph, target);
+    
+    for (size_t i = 0; i < vector_size(dependencies); i++) {
+        void * dep = vector_get(dependencies, i);
+        for (size_t j = 0; j < vector_size(fails); j++) {
+            if (strcmp(dep, vector_get(fails, j)) == 0) {
+                vector_destroy(dependencies);
+                return 1;
             }
         }
+    }
+    
+    return 0;
+}
+
+void runGoal(void * goal) {
+    queue_push(rules, "dummy");
+    void * t = queue_pull(rules);
+
+    while (strcmp(t, "dummy") != 0) {
+        if (isFailed(t) == 1) {
+            vector_push_back(fails, t);
+        } else {
+            rule_t * rule = (rule_t *) graph_get_vertex_value(dependency_graph, t);
+            for (size_t i = 0; i < vector_size(rule->commands); i++) {
+                if (system(vector_get(rule->commands, i)) != 0) {
+                    vector_push_back(fails, t);
+                    break;
+                }
+            }
+        }
+
         t = queue_pull(rules);
     }
 }
@@ -159,6 +181,7 @@ int parmake(char *makefile, size_t num_threads, char **targets) {
     while (goalIndex < vector_size(goals)) {
         rules = queue_create(100);
         visited = string_vector_create();
+        fails = string_vector_create();
 
         void * goal = vector_get(goals, goalIndex);
         if (executeDependencies(goal) == -1) {
@@ -172,6 +195,7 @@ int parmake(char *makefile, size_t num_threads, char **targets) {
 
         queue_destroy(rules);
         vector_destroy(visited);
+        vector_destroy(fails);
 
         goalIndex++;
     }
@@ -180,6 +204,7 @@ int parmake(char *makefile, size_t num_threads, char **targets) {
     vector_destroy(goals);
     // vector_destroy(visited);
     graph_destroy(dependency_graph);
+    
     // queue_destroy(rules);
 
 
