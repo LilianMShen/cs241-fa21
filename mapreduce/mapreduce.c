@@ -1,3 +1,4 @@
+// lmshen2 jlwang5 justink6 dbargon2
 /**
  * mapreduce
  * CS 241 - Fall 2021
@@ -77,10 +78,33 @@ int main(int argc, char **argv) {
     }
 
     // Wait for the reducer to finish.
+    for (int i = 0; i < numMaps; i++) {
+        int status;
+        waitpid(splitterChild[i], &status, 0);
 
-    // Print nonzero subprocess exit codes.
+        if (status != 0) {
+            print_nonzero_exit_status("./splitter", status);
+        }
+    }
+
+    for (int i = 0; i < numMaps; i++) {
+        int status;
+        waitpid(mapChild[i], &status, 0);
+
+        if (status != 0) {
+            print_nonzero_exit_status(argv[3], status);
+        }
+    }
+
+    int status;
+    waitpid(child, &status, 0);
+
+    if (status != 0) {
+        print_nonzero_exit_status(argv[4], status);
+    }
 
     // Count the number of lines in the output file.
+    print_num_lines(argv[2]);
 
     return 0;
 }
