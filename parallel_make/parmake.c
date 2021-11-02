@@ -17,6 +17,7 @@
 static vector * goals;
 static graph * dependency_graph;
 static size_t * runIndex;
+// static pthread_barrier_t barrier;
 // static bool * flag;
 
 struct info {
@@ -38,11 +39,11 @@ bool contains_cycle(void* cur_node, void* to_match) {
     size_t i;
     for (i = 0; i < vector_size(neighbors); i++) {
         if (contains_cycle(vector_get(neighbors, i), to_match)) {
-            vector_destroy(neighbors);
+            // vector_destroy(neighbors);
             return true;
         }
     }
-    vector_destroy(neighbors);
+    // vector_destroy(neighbors);
     return false;
 }
 
@@ -57,7 +58,7 @@ int checkForCycle(void * target) {
             break;
         }
     }
-    vector_destroy(neighbors);
+    // vector_destroy(neighbors);
     return has_cycle;
 }
 
@@ -81,18 +82,18 @@ int executeDependencies(char * target, struct info threadInfo) {
     for (size_t i = 0; i < vector_size(dependencies); i++) {
         void * dep = vector_get(dependencies, i);
         if (executeDependencies(dep, threadInfo) == -1) {
-            vector_destroy(dependencies);
+            // vector_destroy(dependencies);
             return -1;
         }
     }
 
     if (isVisited(target, threadInfo) != 1) {
-        char * t = malloc(sizeof(target));
-        strcpy(t, target); 
-        vector_push_back(threadInfo.visited, t);
-        queue_push(threadInfo.rules, t);
+        // char * t = malloc(sizeof(target));
+        // strcpy(t, target); 
+        vector_push_back(threadInfo.visited, target);
+        queue_push(threadInfo.rules, target);
     }
-    vector_destroy(dependencies);
+    // vector_destroy(dependencies);
 
     return 1;
 }
@@ -104,13 +105,13 @@ int isFailed(void * target, struct info info) {
         void * dep = vector_get(dependencies, i);
         for (size_t j = 0; j < vector_size(info.fails); j++) {
             if (strcmp(dep, vector_get(info.fails, j)) == 0) {
-                vector_destroy(dependencies);
+                // vector_destroy(dependencies);
                 return 1;
             }
         }
     }
     
-    vector_destroy(dependencies);
+    // vector_destroy(dependencies);
     return 0;
 }
 
@@ -135,7 +136,7 @@ void runGoal(void * goal, struct info info) {
             }
         }
 
-        free(t);
+        // free(t);
         t = queue_pull(info.rules);
     }
 }
@@ -219,7 +220,7 @@ int parmake(char *makefile, size_t num_threads, char **targets) {
                 vector_push_back(goals, vector_get(dependencies, i));
                 // printf("%s\n", (char*) vector_get(dependencies, i));
             }
-            vector_destroy(dependencies);
+            // vector_destroy(dependencies);
             break;
         }
         index++;
@@ -272,6 +273,8 @@ int parmake(char *makefile, size_t num_threads, char **targets) {
         }
     }
 
+    // pthread_barrier_init(&barrier, NULL, num_threads);
+
     for (size_t j= 0; j < num_threads; j++) {
         int joinErr = pthread_join(threads[j], NULL);
         if (joinErr) {
@@ -291,5 +294,6 @@ int parmake(char *makefile, size_t num_threads, char **targets) {
     vector_destroy(targs);
     vector_destroy(goals);
     // graph_destroy(dependency_graph);
+    
     return 0;
 }
