@@ -29,7 +29,8 @@ void close_program(int signal);
  * Called by close_program upon SIGINT.
  */
 void close_server_connection() {
-    // Your code here
+    shutdown(serverSocket, SHUT_RDWR);
+    close(serverSocket);
 }
 
 /**
@@ -42,17 +43,32 @@ void close_server_connection() {
  * Returns integer of valid file descriptor, or exit(1) on failure.
  */
 int connect_to_server(const char *host, const char *port) {
-    /*QUESTION 1*/
-    /*QUESTION 2*/
-    /*QUESTION 3*/
+    int sock = socket(AF_INET, SOCK_STREAM, 0);
 
-    /*QUESTION 4*/
-    /*QUESTION 5*/
+    struct addrinfo aInfo;
+    struct addrinfo *res;
 
-    /*QUESTION 6*/
+    memset(&aInfo, 0, sizeof(struct addrinfo));
 
-    /*QUESTION 7*/
-    return -1;
+    aInfo.ai_family = AF_INET;
+    aInfo.ai_socktype = SOCK_STREAM;
+
+    int x = getaddrinfo(host, port, &aInfo, &res);
+
+    if (x != 0) {
+        fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(x));
+        freeaddrinfo(res);
+        exit(1);
+    }
+
+    if (connect(sock, res->ai_addr, res->ai_addrlen) == -1) {
+        perror(NULL);
+        freeaddrinfo(res);
+        exit(1);
+    }
+
+    freeaddrinfo(res);
+    return sock;
 }
 
 typedef struct _thread_cancel_args {

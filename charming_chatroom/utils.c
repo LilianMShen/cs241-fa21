@@ -3,9 +3,11 @@
  * CS 241 - Fall 2021
  */
 #include <arpa/inet.h>
+#include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 
 #include "utils.h"
 static const size_t MESSAGE_SIZE_DIGITS = 4;
@@ -31,16 +33,41 @@ ssize_t get_message_size(int socket) {
 
 // You may assume size won't be larger than a 4 byte integer
 ssize_t write_message_size(size_t size, int socket) {
-    // Your code here
-    return 9001;
+    int32_t s = htonl((uint32_t)size);
+    ssize_t ret = write(socket, &s, sizeof(s));
+    if (ret < 0) {
+        perror(NULL);
+        exit(1);
+    }
+    return ret;
 }
 
 ssize_t read_all_from_socket(int socket, char *buffer, size_t count) {
-    // Your Code Here
-    return 9001;
+    char *pbuf = buffer;
+    size_t buflen = count;
+    while (buflen > 0) {
+        int bytes_read = read(socket, pbuf, buflen); // Receive bytes
+
+        if (bytes_read == -1 && errno == EINTR) {
+            continue;
+        }
+
+        if (bytes_read <= 0) {
+            return bytes_read;
+        } 
+
+        pbuf += bytes_read;
+        buflen -= bytes_read;
+    }
+
+    return count;
 }
 
 ssize_t write_all_to_socket(int socket, const char *buffer, size_t count) {
-    // Your Code Here
-    return 9001;
+    ssize_t ret = write(socket, buffer, count);
+    if (ret < 0) {
+        perror(NULL);
+        exit(1);
+    }
+    return ret;
 }

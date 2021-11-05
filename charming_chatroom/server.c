@@ -34,7 +34,6 @@ static pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
  */
 void close_server() {
     endSession = 1;
-    // add any additional flags here you want.
 }
 
 /**
@@ -75,19 +74,91 @@ void cleanup() {
  *    - perror() for any other call
  */
 void run_server(char *port) {
-    /*QUESTION 1*/
-    /*QUESTION 2*/
-    /*QUESTION 3*/
+    serverSocket = socket(AF_INET, SOCK_STREAM, 0);
 
-    /*QUESTION 8*/
+    struct addrinfo ainfo, *res;
 
-    /*QUESTION 4*/
-    /*QUESTION 5*/
-    /*QUESTION 6*/
+    memset(&ainfo, 0, sizeof(struct addrinfo));
 
-    /*QUESTION 9*/
+    ainfo.ai_family = AF_INET;
+    ainfo.ai_flags = AI_PASSIVE;
+    ainfo.ai_socktype = SOCK_STREAM;
 
-    /*QUESTION 10*/
+    int x = getaddrinfo(NULL, port, &ainfo, &res);
+
+    if (x != 0) {
+        fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(x));
+        freeaddrinfo(res);
+        exit(1);
+    }
+
+    int optval = 1;
+    x = setsockopt(serverSocket, SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(optval));
+
+    if (x == -1) {
+        perror(NULL);
+        exit(1);
+    }
+
+    x = setsockopt(serverSocket, SOL_SOCKET, SO_REUSEPORT, &optval, sizeof(optval));
+
+    if (x == -1) {
+        perror(NULL);
+        exit(1);
+    }
+
+    x = bind(serverSocket, res->ai_addr, res->ai_addrlen);
+
+    if (x == -1) {
+        perror(NULL);
+        exit(1);
+    }
+
+    x = listen(serverSocket, MAX_CLIENTS);
+
+    if (x == -1) {
+        perror(NULL);
+        exit(1);
+    }
+
+    endSession = 0;
+
+    pthread_t threads[MAX_CLIENTS];
+    clientsCount = 0;
+
+    for (int i = 0; i < MAX_CLIENTS; i++) {
+        clients[i] = -1;
+        threads[i] = 0;
+    }
+
+    while (endSession == 0) {
+        int client_fd = accept(serverSocket, NULL, NULL);
+        clientsCount++;
+        if (clientsCount > MAX_CLIENTS) {
+            shutdown(client_fd, SHUT_WR);
+            close(client_fd);
+        } else {
+            for (int i = 0; i < MAX_CLIENTS; ++i) {
+                if (clients[i] == -1) {
+                    clients[i] = client_fd;
+
+                    printf("Connected: %d\n", client_fd);
+                    intptr_t temp = i;
+                    pthread_create(&threads[i], NULL, process_client, (void*)temp);
+
+                    break;
+                }
+            }
+        }
+    }
+
+    for (int i = 0; i < MAX_CLIENTS; i++) {
+        if (threads[i] != 0) {
+            pthread_join(threads[i], NULL);
+        }
+    }
+
+    freeaddrinfo(res);
 }
 
 /**
