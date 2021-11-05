@@ -36,7 +36,7 @@ ssize_t get_message_size(int socket) {
 // You may assume size won't be larger than a 4 byte integer
 ssize_t write_message_size(size_t size, int socket) {
     int32_t s = htonl((uint32_t)size);
-    ssize_t ret = write(socket, &s, sizeof(s));
+    ssize_t ret = write_all_to_socket(socket, &s, sizeof(s));
     if (ret < 0) {
         perror(NULL);
         exit(1);
@@ -66,7 +66,7 @@ ssize_t read_all_from_socket(int socket, char *buffer, size_t count) {
 }
 
 ssize_t write_all_to_socket(int socket, const char *buffer, size_t count) {
-    ssize_t ret = write_all_to_socket(socket, buffer, count);
+    ssize_t ret = write(socket, buffer, count);
     if (ret < 0) {
         perror(NULL);
         exit(1);
