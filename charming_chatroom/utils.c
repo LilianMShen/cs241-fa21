@@ -66,7 +66,7 @@ ssize_t read_all_from_socket(int socket, char *buffer, size_t count) {
 }
 
 ssize_t write_all_to_socket(int socket, const char *buffer, size_t count) {
-    ssize_t ret = write(socket, buffer, count);
+    ssize_t ret = write_all_to_socket(socket, buffer, count);
     if (ret < 0) {
         perror(NULL);
         exit(1);
