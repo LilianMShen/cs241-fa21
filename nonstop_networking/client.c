@@ -9,13 +9,26 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <sys/epoll.h>
 
 #include "common.h"
 
 char **parse_args(int argc, char **argv);
 verb check_args(char **args);
+
 int main(int argc, char **argv) {
     // Good luck!
+    char ** args = parse_args(argc, argv);
+    verb req = check_args(args);
+
+    // use epoll and EPOLLONESHOT for edge triggered---
+
+    // int fd = epoll_create(size);
+
+    for (size_t i = 0; i < argc; i++) {
+        free(args[i]);
+    }
+    free(args);
 }
 
 /**
