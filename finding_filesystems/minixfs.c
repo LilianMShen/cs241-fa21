@@ -9,7 +9,7 @@
 #include <string.h>
 #include <time.h>
 
-void * get_data_block(file_system * fs, inode * node, size_t index) {
+void * get_data_block(file_system * fs, inode * node, uint64_t index) {
     data_block_number * blockNum;
     if (index < NUM_DIRECT_BLOCKS) {
         blockNum = node->direct;
@@ -205,11 +205,11 @@ ssize_t minixfs_write(file_system *fs, const char *path, const void *buf,
     //     return -1;
     // }
 
-    size_t index = *off / sizeof(data_block);
+    uint64_t index = *off / sizeof(data_block);
     size_t offset = *off % sizeof(data_block);
-    size_t size = count;
+    uint64_t size = count;
     if (count > sizeof(data_block) - offset) size = sizeof(data_block) - offset;
-    size_t written = size;
+    uint64_t written = size;
     *off += size;
     void * blockaddr = get_data_block(fs, node, index);
     blockaddr += offset;
@@ -254,11 +254,11 @@ ssize_t minixfs_read(file_system *fs, const char *path, void *buf, size_t count,
         count = node->size - *off;
     }
 
-    size_t index = *off / sizeof(data_block);
+    uint64_t index = *off / sizeof(data_block);
     size_t offset = *off % sizeof(data_block);
-    size_t size = count;
+    uint64_t size = count;
     if (count > sizeof(data_block) - offset) size = sizeof(data_block) - offset;
-    size_t read = size;
+    uint64_t read = size;
     *off += size;
     void * blockaddr = get_data_block(fs, node, index);
     blockaddr += offset;
