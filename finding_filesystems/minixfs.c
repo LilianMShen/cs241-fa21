@@ -216,8 +216,8 @@ ssize_t minixfs_write(file_system *fs, const char *path, const void *buf,
     index++;
     memcpy(blockaddr, buf, size);
     while (written < count) {
-        if (count - written > sizeof(data_block)) size = sizeof(data_block);
-        else size = count - written;
+        // if (count - written > sizeof(data_block)) size = sizeof(data_block);
+        // else size = count - written;
         blockaddr = get_data_block(fs, node, index);
         memcpy(blockaddr, buf + written, size);
         written += size;
@@ -264,8 +264,8 @@ ssize_t minixfs_read(file_system *fs, const char *path, void *buf, size_t count,
     blockaddr += offset;
     index++;
    while (read < count) {
-       if (count - read > sizeof(data_block)) size = sizeof(data_block);
-       else size = count - read;
+    //    if (count - read > sizeof(data_block)) size = sizeof(data_block);
+    //    else size = count - read;
 
        blockaddr = get_data_block(fs, node, index);
        memcpy(buf + read, blockaddr, size);
