@@ -53,6 +53,15 @@ int main(int argc, char **argv) {
     if (fd < 0 || fstat(fd, &s) < 0) {
         openFail(argv[1]);
         exit(2);
+    } else {
+      // check for invalid data file
+      char buf[5];
+      read(fd, buf, 4);
+      buf[4] = '\0';
+      if (strcmp(buf, "BTRE") != 0) {
+        formatFail(argv[1]);
+        exit(2);
+      }
     }
 
     data = mmap(0, s.st_size, PROT_READ, MAP_SHARED, fd, 0);
