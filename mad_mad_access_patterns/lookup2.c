@@ -1,4 +1,4 @@
-// partners: lmshen2, justink6, dbargon2, jlwang5
+// partners: lmshen2, justink6, dbargon2, jlwang5, jaym2, mjakim2
 
 /**
  * Mad Mad Access Pattern
