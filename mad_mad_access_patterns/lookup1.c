@@ -63,9 +63,9 @@ BinaryTreeNode* find_node(FILE* file, BinaryTreeNode* root, char* word) {
 }
 
 int main(int argc, char **argv) {
-  if (argc < 3) {
+  if (argc < 2) {
     printArgumentUsage();
-    return -1;
+    exit(1);
   }
 
   // argv[1] = data_file
@@ -75,7 +75,7 @@ int main(int argc, char **argv) {
   FILE * input = fopen(fileName, "r");
   if (input == NULL){
     openFail(fileName);
-    return -1;
+    exit(2);
   }
 
   // The first 4 bytes of the input file are the letters “BTRE”. 
@@ -85,7 +85,7 @@ int main(int argc, char **argv) {
   fread(firstFour, 1, 4, input);
   if (strcmp(firstFour, BINTREE_HEADER_STRING) != 0) {
     formatFail(fileName);
-    return -1;
+    exit(2);
   }
 
   // Get root node
