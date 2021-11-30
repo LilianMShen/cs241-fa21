@@ -54,7 +54,43 @@ void in_to_out(int cfd) {
 }
 
 void exec_command(int cfd, struct client_info * cinfo) {
-    if (cinfo->command == GET) {
+    if (cinfo->command == LIST) {
+		write_all_to_socket(cfd, "OK\n", 3);
+		size_t size = 0;
+		VECTOR_FOR_EACH(files, name, {
+	         size += strlen(name)+1;
+	    });
+		if (size) size--;
+		write_all_to_socket(cfd, (char*)& size, sizeof(size_t));
+		VECTOR_FOR_EACH(files, name, {
+		        write_all_to_socket(cfd, name, strlen(name));
+				if (_it != _iend-1) write_all_to_socket(cfd, "\n", 1);
+		});
+	} else if (cinfo->command == PUT) {
+		write_all_to_socket(cfd, "OK\n", 3);
+	} else if (cinfo->command == DELETE) {
+		int len = strlen(directory) + strlen(cinfo->file) + 2;
+		char path[len];
+		memset(path, 0, len);
+		sprintf(path, "%s/%s", directory, cinfo->file);
+		if (remove(path) < 0) {
+			cinfo->status = -3;
+			return;
+		}
+		size_t i = 0;
+		VECTOR_FOR_EACH(files, name, {
+	        if (!strcmp((char *) name, cinfo->file)) break;
+			i++;
+	 	});
+		size_t v_size= vector_size(files);
+		if (i == v_size) {
+			cinfo->status = -3;
+			return;
+		}
+		vector_erase(files, i);
+		dictionary_remove(files_sizes, cinfo->file);
+		write_all_to_socket(cfd, "OK\n", 3);
+	} else if (cinfo->command == GET) {
 		int len = strlen(directory) + strlen(cinfo->file) + 1;
 		char path[len];
 		memset(path, 0, len);
@@ -82,42 +118,6 @@ void exec_command(int cfd, struct client_info * cinfo) {
       		w_count += size_head;
     	}
 		fclose(r_mode);
-	} else if (cinfo->command == PUT) {
-		write_all_to_socket(cfd, "OK\n", 3);
-	} else if (cinfo->command == DELETE) {
-		int len = strlen(directory) + strlen(cinfo->file) + 2;
-		char path[len];
-		memset(path, 0, len);
-		sprintf(path, "%s/%s", directory, cinfo->file);
-		if (remove(path) < 0) {
-			cinfo->status = -3;
-			return;
-		}
-		size_t i = 0;
-		VECTOR_FOR_EACH(files, name, {
-	        if (!strcmp((char *) name, cinfo->file)) break;
-			i++;
-	 	});
-		size_t v_size= vector_size(files);
-		if (i == v_size) {
-			cinfo->status = -3;
-			return;
-		}
-		vector_erase(files, i);
-		dictionary_remove(files_sizes, cinfo->file);
-		write_all_to_socket(cfd, "OK\n", 3);
-	} else if (cinfo->command == LIST) {
-		write_all_to_socket(cfd, "OK\n", 3);
-		size_t size = 0;
-		VECTOR_FOR_EACH(files, name, {
-	         size += strlen(name)+1;
-	    });
-		if (size) size--;
-		write_all_to_socket(cfd, (char*)& size, sizeof(size_t));
-		VECTOR_FOR_EACH(files, name, {
-		        write_all_to_socket(cfd, name, strlen(name));
-				if (_it != _iend-1) write_all_to_socket(cfd, "\n", 1);
-		});
 	}
 	epoll_ctl(efd, EPOLL_CTL_DEL, cfd, NULL);
   	free(dictionary_get(clients, &cfd));
