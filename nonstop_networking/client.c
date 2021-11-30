@@ -22,36 +22,6 @@
 char **parse_args(int argc, char **argv);
 verb check_args(char **args);
 
-ssize_t write_all_to_socket(int socket, const char *buffer, size_t count) {
-    ssize_t ret = write(socket, buffer, count);
-    if (ret < 0) {
-        perror(NULL);
-        exit(1);
-    }
-    return ret;
-}
-
-ssize_t read_all_from_socket(int socket, char *buffer, size_t count) {
-    char *pbuf = buffer;
-    size_t buflen = count;
-    while (buflen > 0) {
-        int bytes_read = read(socket, pbuf, buflen); // Receive bytes
-
-        if (bytes_read == -1 && errno == EINTR) {
-            continue;
-        }
-
-        if (bytes_read <= 0) {
-            return bytes_read;
-        } 
-
-        pbuf += bytes_read;
-        buflen -= bytes_read;
-    }
-
-    return count;
-}
-
 int connect_to_server(const char *host, const char *port) {
     int sock = socket(AF_INET, SOCK_STREAM, 0);
 
@@ -230,15 +200,10 @@ int main(int argc, char **argv) {
 
     int sock = connect_to_server(args[0], args[1]);
 
-    // // use epoll and EPOLLONESHOT for edge triggered---
-    // struct epoll_event event;
-    // int fd = epoll_create1(0);
-    // event.events = EPOLLONESHOT;
-    // event.data.fd = sock;
+    
 
     // put and list
     write_to_server(args, req, sock);
-
     
     read_from_server(args, req, sock);
 
