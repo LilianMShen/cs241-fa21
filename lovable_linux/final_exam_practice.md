@@ -187,9 +187,18 @@ if there's a preemption.
 
 1.	Define circular wait, mutual exclusion, hold and wait, and no-preemption. How are these related to deadlock?
 
+Circular wait: each process must be waiting for a resource which is being held by another process, which in turn is waiting for the first process to release the resource.
+Mutual exclusion: At least two resource must be held in a non-shareable mode. Otherwise, the processes would not be prevented from using the resource when necessary. Only one process can use the resource at any given instant of time
+Hold and wait: a process is currently holding at least one resource and requesting additional resources which are being held by other processes.
+No preemption: a resource can be released only voluntarily by the process holding it.
+
 2.	What problem does the Banker's Algorithm solve?
 
+The banker algorithm tests for safety by simulating the allocation of pre determined maximum possible ammounts of all resources, then makes an s-state check to test for possible deadlock conditions and all other pending activities, before deciding whether allocation should be allowed to continue.
+
 3.	What is the difference between Deadlock Prevention, Deadlock Detection and Deadlock Avoidance?
+
+deadlock prevention ensures that at least one of the necessary conditions to cause a deadlock will never occur, while deadlock avoidance ensures that the system will not enter an unsafe state. Deadlock detection simply detects if there is a deadlock.
 
 4.	Sketch how to use condition-variable based barrier to ensure your main game loop does not start until the audio and graphic threads have initialized the hardware and are ready.
 
