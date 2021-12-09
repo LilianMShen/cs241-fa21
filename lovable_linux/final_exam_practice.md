@@ -12,15 +12,19 @@ Be awesome. Angrave.
 
 1.	What are the differences between a library call and a system call? Include an example of each.
 
+A system call is a function provided by the kernel to enter kernel mode to access the hardware resources. A library call is a function provided by programming libraries. System call examples are fork() exit() wait(). Library call examples are fopen() fclose().
 
 2.	What is the `*` operator in C? What is the `&` operator? Give an example of each.
 
+The * operator is a pointer. It points to a place in memory. char * string = malloc(4). The & operator is for the address. It is the address in the memory. int a = 4; &a // this is the address of a
 
 3.	When is `strlen(s)` != `1+strlen(s+1)` ?
 
+when s + 1 points to a different value from s (like, s was 0 bytes long so by incrementing to s + 1 you are now pointing to a different variable in memory)
 
 4.	How are C strings represented in memory? What is the wrong with `malloc(strlen(s))` when copying strings?
 
+C strings are represented as char pointers. You cannot malloc(strlen(s)) because you need 1 extra byte for the null byte. 
 
 5.	Implement a truncation function `void trunc(char*s,size_t max)` to ensure strings are not too long with the following edge cases.
 ```
@@ -37,16 +41,67 @@ else
 6.	Complete the following function to create a deep-copy on the heap of the argv array. Set the result pointer to point to your array. The only library calls you may use are malloc and memcpy. You may not use strdup.
 
     `void duplicate(char **argv, char ***result);` 
+    char ** dup = malloc(sizeof(argv));
+    size_t len = sizeof(argv);
+    for (size_t i = 0; i < len; i++) {
+        char * j = argv[i];
+        size_t len2 = strlen(j);
+        dup[i] = malloc(len2 + 1);
+        for (size_t k = 0; k < len2; k++) {
+            dup[i][k] = argv[i][k];
+        }
+        dup[i][len2] = '\0';
+    }
+    result = &dup;
 
 7.	Write a program that reads a series of lines from `stdin` and prints them to `stdout` using `fgets` or `getline`. Your program should stop if a read error or end of file occurs. The last text line may not have a newline char.
+
+char * getInput(void) {
+    char * line = malloc(100), * linep = line;
+    size_t lenmax = 100, len = lenmax;
+    int c;
+
+    if(line == NULL)
+        return NULL;
+
+    for(;;) {
+        c = fgetc(stdin);
+        if(c == EOF)
+            break;
+
+        if(--len == 0) {
+            len = lenmax;
+            char * linen = realloc(linep, lenmax *= 2);
+
+            if(linen == NULL) {
+                free(linep);
+                return NULL;
+            }
+            line = linen + (line - linep);
+            linep = linen;
+        }
+
+        if((*line++ = c) == '\n')
+            break;
+    }
+    *line = '\0';
+    linep[strlen(linep) - 1] = '\0';
+    return linep;
+}
 
 ## 2. Memory 
 
 1.	Explain how a virtual address is converted into a physical address using a multi-level page table. You may use a concrete example e.g. a 64bit machine with 4KB pages. 
 
+each virtual adress space is divided into fixed-size chunks called pages. The physical address space is divided into frames. Frame size and page size match. OS maintains a page table for each process. Page table specifies the frame in which each of the process's pages is located. At run time, MMU translates virtual addresses to physical using the page table of the running process. 
+
 2.	Explain Knuth's and the Buddy allocation scheme. Discuss internal & external Fragmentation.
 
+the buddy allocation scheme is a memor allocation algorithm that divides memory into partitions to try to satisfy a memory request as suitably as possible. This system makes use of splitting memory into halves to try to give a best fit. The buddy system has little external fragmentation (and allows for compaction of memory with little overhead) Internal fragmentation is still a problem because memory is wasted when the meory requested is a little larger than a small block, but a lot smaller than a large block.
+
 3.	What is the difference between the MMU and TLB? What is the purpose of each?
+
+MMU is a hardware unit which performs the translation of virtual memory address to physical memory address whereas TLB is an associative cache of page table entries and is used to avoid the necessity of accessing the main memory every time a virtual address is mapped. 
 
 4.	Assuming 4KB page tables what is the page number and offset for virtual address 0x12345678  ?
 
