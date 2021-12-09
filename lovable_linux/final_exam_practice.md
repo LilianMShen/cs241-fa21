@@ -105,9 +105,15 @@ MMU is a hardware unit which performs the translation of virtual memory address 
 
 4.	Assuming 4KB page tables what is the page number and offset for virtual address 0x12345678  ?
 
+pain.
+
 5.	What is a page fault? When is it an error? When is it not an error?
 
+a page fault is an exception that the mmu raises when a process accesses a memory page without proper preparations.
+
 6.	What is Spatial and Temporal Locality? Swapping? Swap file? Demand Paging?
+
+Spatial locality are items with nearby addresses tend to be referenced close together in time. Temporal locality is when recently referenced items are likely to be referenced in near future. Demand paging is when you only bring in a page when needed. Swap files are files that contain data retrieved from system meory or RAM.
 
 ## 3. Processes and Threads 
 
