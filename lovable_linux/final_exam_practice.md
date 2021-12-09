@@ -119,32 +119,69 @@ Spatial locality are items with nearby addresses tend to be referenced close tog
 
 1.	What resources are shared between threads in the same process?
 
+they share the same (heap) memory and the same open files.
+
 2.	Explain the operating system actions required to perform a process context switch
+
+The state of the currently executing process must be saved so it can be restored when rescheduled for execution. The process state includes all the registers that the process may be using. especially the program counter, plus any other operating system specific data that may be necessary (stored in the PCB). the PCB might be stored on a per-process stack. A handle to the PCB is added to a queue of processes that is ready to now run on. It can then switch context by choosing a process from the ready queue and restoring its PCB. The program counter from the PCB is loaded, and thus execution can continue in the chosen process. Process and thread priority can influence which process is chosen from the ready queue. 
 
 3.	Explain the actions required to perform a thread context switch to a thread in the same process
 
+thread switching is very efficient and much cheaper because it involves switching out only identities and resources such as the program counter, registers, and stack pointers. 
+
 4.	How can a process be orphaned? What does the process do about it?
+
+Orphan processes are those processes that are still running even though their parent process has terminated or finished. You can terminate it, reincarnate it, or set an expiration time.
 
 5.	How do you create a process zombie?
 
+A child process terminates but has not been waited for.
+
 6.	Under what conditions will a multi-threaded process exit? (List at least 4)
+
+1) when a thread calls the exit subroutine
+2) a cancelation mechanism is called
+3) async cancel safety is called
+4) the process calls a pthread exit subroutine
 
 ## 4. Scheduling 
 1.	Define arrival time, pre-emption, turnaround time, waiting time and response time in the context of scheduling algorithms. What is starvation?  Which scheduling policies have the possibility of resulting in starvation?
 
+arrival time: time when process arrives
+preemption: if a new process arrives with less work than the remaining time of current process, then switch to the new process
+turnaround time: time taken between the submission of a process for execution and the return of the complete output to the user
+waiting time: how much time processes spend in the ready queue witing for their turn to get on the CPU
+response time: time spent between the ready state and getting the CPU for the first time
+starvation: when a process ready to run for CPU can wait indefinitely because of low priority
+Scheduling poliices: overly sipmlistic or poorly designed scheduling algorithims can result in starvation. For example: SJF, Priority Based Scheduling, Multilevel Queue Sheduling and Shortest Remaining Time.
+
 2.	Which scheduling algorithm results the smallest average wait time?
+
+SJF scheduling algorithm
 
 3.	What scheduling algorithm has the longest average response time? shortest total wait time?
 
+SJF (again?)
+
 4.	Describe Round-Robin scheduling and its performance advantages and disadvantages.
+
+It jumps from task to task after a set amount of time has passed. The pros: it's starvation free, it's common, it's preemptive. The cons: more overhead of context switching.
 
 5.	Describe the First Come First Serve (FCFS) scheduling algorithm. Explain how it leads to the convoy effect. 
 
+the FCFS algorithm executes tasks in order of their arrival. The convoy effecct happens in which the whole operating system slows down due to a few slow processes.
+
 6.	Describe the Pre-emptive and Non-preemptive SJF scheduling algorithms. 
+
+Preemptive SJF is when jobs are put into the ready queue as they come. If a new job comes in with shorter burst time than the current job, the 2 will switch. Non-preemptive SJF does not interrupt current job.
 
 7.	How does the length of the time quantum affect Round-Robin scheduling? What is the problem if the quantum is too small? In the limit of large time slices Round Robin is identical to _____?
 
+The length of time quantum affects round robin in how much time passes before switching tasks. If the quantum is too small it will frequently switch jobs (which can become inefficient). If the slices are too large round robin becomes identical to FCFS
+
 8.	What reasons might cause a scheduler switch a process from the running to the ready state?
+
+if there's a preemption.
 
 ## 5. Synchronization and Deadlock
 
